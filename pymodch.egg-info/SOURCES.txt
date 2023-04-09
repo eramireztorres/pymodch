@@ -9,6 +9,7 @@ pymodch.egg-info/top_level.txt
 pymodch/assess/__init__.py
 pymodch/determ_models/__init__.py
 pymodch/fit/__init__.py
-pymodch/likelihood_base/__init__.py
+pymodch/likelihood_models/Ilikelihood_models.py
 pymodch/likelihood_models/__init__.py
 pymodch/plot/__init__.py
+pymodch/time_models/__init__.py
