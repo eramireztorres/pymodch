@@ -16,17 +16,17 @@ To install PyModCh, simply clone this repository and run:
 ```bash
 pip install .
 
-
-Examples
+## Examples
 
 Three examples are provided to demonstrate how to use PyModCh for Bayesian parameter estimation and model comparison:
 
-1. line_fit.py illustrates how to fit a straight line model to synthetic data using the EmceeModelFitter.
-2. gompertz_fit.py demonstrates how to fit a Gompertz model to synthetic data using the EmceeModelFitter.
-3. simple_model_comparison.py provides a unit test to compare two Gaussian models based on their marginal likelihoods.
+1. `line_fit.py` illustrates how to fit a straight line model to synthetic data using the `EmceeModelFitter`.
+2. `gompertz_fit.py` demonstrates how to fit a Gompertz model to synthetic data using the `EmceeModelFitter`.
+3. `simple_model_comparison.py` provides a unit test to compare two Gaussian models based on their marginal likelihoods.
 
 To run the examples, navigate to the examples directory and execute the corresponding Python scripts:
 
+```bash
 python line_fit.py
 python gompertz_fit.py
 python simple_model_comparison.py
