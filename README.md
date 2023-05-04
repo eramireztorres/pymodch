@@ -17,10 +17,6 @@ To install PyModCh, simply clone this repository and run:
 pip install .
 ```
 
-Or just use:
-```bash
-pip install pymodch
-```
 ## Examples
 
 Three examples are provided to demonstrate how to use PyModCh for Bayesian parameter estimation and model comparison:
