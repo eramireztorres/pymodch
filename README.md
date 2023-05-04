@@ -15,7 +15,12 @@ To install PyModCh, simply clone this repository and run:
 
 ```bash
 pip install .
+```
 
+Or just use:
+```bash
+pip install pymodch
+```
 ## Examples
 
 Three examples are provided to demonstrate how to use PyModCh for Bayesian parameter estimation and model comparison:
@@ -30,23 +35,26 @@ To run the examples, navigate to the examples directory and execute the correspo
 python line_fit.py
 python gompertz_fit.py
 python simple_model_comparison.py
+```
 
-Usage
+## Usage
 
 To use PyModCh in your own projects, simply import the required modules and classes:
 
+```bash
 from pymodch.prior_models.prior_models import UniformPrior
 from pymodch.likelihood_models.likelihood_models import StraightLineLikelihood
 from pymodch.fit.bayes_fit import EmceeModelFitter
+```
 
 Then, define your likelihood and prior models, instantiate an EmceeModelFitter, and fit your data.
 
 For more detailed usage instructions, please refer to the provided examples.
 
-Contributing
+## Contributing
 
 We welcome contributions to PyModCh. If you would like to contribute, please submit a pull request with your proposed changes.
 
-License
+## License
 
 PyModCh is released under the MIT license.
