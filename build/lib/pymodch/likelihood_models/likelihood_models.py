@@ -218,71 +218,19 @@ class LhNormal(LhModel):
 
  
 class LhNormalProp(LhNormal):
-    """
-    A class representing the likelihood for a Normal distribution with proportional errors using an ODE model.
-    Inherits from LhNormal.
-    """
     def log_likelihood(self, data, theta):
-        """
-        Compute the log-likelihood of the model given the data and parameters.
-
-        Parameters
-        ----------
-        data : array-like
-            Observed data points.
-        theta : array-like
-            Model parameters.
-
-        Returns
-        -------
-        float
-            Log-likelihood of the model given the data and parameters.
-        """
         sigma_std = self._get_err_theta(theta)
         std = sigma_std * data
         return get_vector_likelihood(std, data, theta, self)
 
-
 class LhBenz(LhModel):
-    """
-    A class representing the likelihood for a Benzekry et al error
-    model with an ODE model.
-    """
     def __init__(self, ode_model: OdeModel, time_vector: np.array):
         super().__init__(ode_model, time_vector)
 
     def _get_err_theta(self, theta):
-        """
-        Get the error terms from the model parameters.
-
-        Parameters
-        ----------
-        theta : array-like
-            Model parameters.
-
-        Returns
-        -------
-        array-like
-            The error terms (sigma, Vm, alpha).
-        """
         return theta[-3:]
 
     def log_likelihood(self, data, theta):
-        """
-        Compute the log-likelihood of the model given the data and parameters.
-
-        Parameters
-        ----------
-        data : array-like
-            Observed data points.
-        theta : array-like
-            Model parameters.
-
-        Returns
-        -------
-        float
-            Log-likelihood of the model given the data and parameters.
-        """
         sigma, Vm, alpha = self._get_err_theta(theta)
         E = np.zeros(len(data))
         for i, Y in enumerate(data):
@@ -294,44 +242,13 @@ class LhBenz(LhModel):
         return get_vector_likelihood(std, data, theta, self)
 
 class LhStudent(LhModel):
-    """
-    A class representing the likelihood for a Student's t-distribution with an ODE model.
-    """
     def __init__(self, ode_model: OdeModel, time_vector: np.array):
         super().__init__(ode_model, time_vector)
 
     def _get_err_theta(self, theta):
-        """
-        Get the error terms from the model parameters.
-
-        Parameters
-        ----------
-        theta : array-like
-            Model parameters.
-
-        Returns
-        -------
-        tuple
-            The error terms (k, scale).
-        """
         return theta[-2], theta[-1]
 
     def log_likelihood(self, data, theta):
-        """
-        Compute the log-likelihood of the model given the data and parameters.
-
-        Parameters
-        ----------
-        data : array-like
-            Observed data points.
-        theta : array-like
-            Model parameters.
-
-        Returns
-        -------
-        float
-            Log-likelihood of the model given the data and parameters.
-        """
         k, scale = self._get_err_theta(theta)
         if np.isscalar(scale):
             lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
@@ -340,29 +257,9 @@ class LhStudent(LhModel):
             lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
                    loc in enumerate(self.get_predictions(theta))]
         return np.sum(np.array(lhs))
-    
 
 class LhStudentProp(LhStudent):
-    """
-    A class representing the likelihood for a Student's t-distribution with proportional errors using an ODE model.
-    Inherits from LhStudent.
-    """
     def log_likelihood(self, data, theta):
-        """
-        Compute the log-likelihood of the model given the data and parameters.
-
-        Parameters
-        ----------
-        data : array-like
-            Observed data points.
-        theta : array-like
-            Model parameters.
-
-        Returns
-        -------
-        float
-            Log-likelihood of the model given the data and parameters.
-        """
         k, sig_scale = self._get_err_theta(theta)
         scale = sig_scale * data
         if np.isscalar(scale):
@@ -372,4 +269,3 @@ class LhStudentProp(LhStudent):
             lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
                    loc in enumerate(self.get_predictions(theta))]
         return np.sum(np.array(lhs))
-
