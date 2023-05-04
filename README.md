@@ -1,6 +1,6 @@
 # PyModCh
 
-PyModCh is a Python package for **Bayesian model comparison** and **parameter estimation** using ensemble Markov chain Monte Carlo (MCMC) techniques. This package is designed to be user-friendly, flexible, and efficient for fitting and comparing different models to data.
+PyModCh is a Python package for **Bayesian model comparison** and **parameter estimation** using ensemble Markov chain Monte Carlo (MCMC) techniques. This package is designed to be user-friendly, flexible, and efficient for fitting and comparing different models.
 
 ## Features
 
