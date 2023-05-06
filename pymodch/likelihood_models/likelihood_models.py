@@ -178,8 +178,9 @@ class LhNormal(LhModel):
     """
     A class representing the likelihood for a normal distribution with an ODE model.
     """
-    def __init__(self, ode_model: OdeModel, time_vector: np.array):
+    def __init__(self, ode_model: OdeModel, time_vector: np.array, use_square_errors=False):
         super().__init__(ode_model, time_vector)
+        self.use_square_errors = use_square_errors
 
     def _get_err_theta(self, theta):
         """
@@ -213,8 +214,17 @@ class LhNormal(LhModel):
         float
             Log-likelihood of the model given the data and parameters.
         """
-        std = self._get_err_theta(theta)
-        return get_vector_likelihood(std, data, theta, self)
+        # std = self._get_err_theta(theta)
+        # return get_vector_likelihood(std, data, theta, self)    
+
+        if self.use_square_errors:
+            std = self._get_err_theta(theta)
+            residuals = data - self.get_predictions(theta)
+            square_errors = -0.5 * np.sum(residuals**2 / std**2)
+            return square_errors
+        else:
+            std = self._get_err_theta(theta)
+            return get_vector_likelihood(std, data, theta, self)
 
  
 class LhNormalProp(LhNormal):
@@ -238,9 +248,20 @@ class LhNormalProp(LhNormal):
         float
             Log-likelihood of the model given the data and parameters.
         """
-        sigma_std = self._get_err_theta(theta)
-        std = sigma_std * data
-        return get_vector_likelihood(std, data, theta, self)
+        # sigma_std = self._get_err_theta(theta)
+        # std = sigma_std * data
+        # return get_vector_likelihood(std, data, theta, self)
+        
+        if self.use_square_errors:
+            sigma_std = self._get_err_theta(theta)
+            std = sigma_std * data
+            residuals = data - self.get_predictions(theta)
+            square_errors = -0.5 * np.sum(residuals**2 / std**2)
+            return square_errors
+        else:
+            sigma_std = self._get_err_theta(theta)
+            std = sigma_std * data
+            return get_vector_likelihood(std, data, theta, self)
 
 
 class LhBenz(LhModel):
@@ -248,8 +269,9 @@ class LhBenz(LhModel):
     A class representing the likelihood for a Benzekry et al error
     model with an ODE model.
     """
-    def __init__(self, ode_model: OdeModel, time_vector: np.array):
+    def __init__(self, ode_model: OdeModel, time_vector: np.array, use_square_errors=False):
         super().__init__(ode_model, time_vector)
+        self.use_square_errors = use_square_errors
 
     def _get_err_theta(self, theta):
         """
@@ -283,22 +305,46 @@ class LhBenz(LhModel):
         float
             Log-likelihood of the model given the data and parameters.
         """
-        sigma, Vm, alpha = self._get_err_theta(theta)
-        E = np.zeros(len(data))
-        for i, Y in enumerate(data):
-            if Y < Vm:
-                E[i] = Vm**alpha
-            else:
-                E[i] = Y**alpha
-        std = sigma * E
-        return get_vector_likelihood(std, data, theta, self)
+        # sigma, Vm, alpha = self._get_err_theta(theta)
+        # E = np.zeros(len(data))
+        # for i, Y in enumerate(data):
+        #     if Y < Vm:
+        #         E[i] = Vm**alpha
+        #     else:
+        #         E[i] = Y**alpha
+        # std = sigma * E
+        # return get_vector_likelihood(std, data, theta, self)
+        
+        if self.use_square_errors:
+            sigma, Vm, alpha = self._get_err_theta(theta)
+            E = np.zeros(len(data))
+            for i, Y in enumerate(data):
+                if Y < Vm:
+                    E[i] = Vm**alpha
+                else:
+                    E[i] = Y**alpha
+            std = sigma * E
+            residuals = data - self.get_predictions(theta)
+            square_errors = -0.5 * np.sum(residuals**2 / std**2)
+            return square_errors
+        else:
+            sigma, Vm, alpha = self._get_err_theta(theta)
+            E = np.zeros(len(data))
+            for i, Y in enumerate(data):
+                if Y < Vm:
+                    E[i] = Vm**alpha
+                else:
+                    E[i] = Y**alpha
+            std = sigma * E
+            return get_vector_likelihood(std, data, theta, self)
 
 class LhStudent(LhModel):
     """
     A class representing the likelihood for a Student's t-distribution with an ODE model.
     """
-    def __init__(self, ode_model: OdeModel, time_vector: np.array):
+    def __init__(self, ode_model: OdeModel, time_vector: np.array, use_square_errors=False):
         super().__init__(ode_model, time_vector)
+        self.use_square_errors = use_square_errors
 
     def _get_err_theta(self, theta):
         """
@@ -332,14 +378,29 @@ class LhStudent(LhModel):
         float
             Log-likelihood of the model given the data and parameters.
         """
-        k, scale = self._get_err_theta(theta)
-        if np.isscalar(scale):
-            lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
-                   loc in enumerate(self.get_predictions(theta))]
+        # k, scale = self._get_err_theta(theta)
+        # if np.isscalar(scale):
+        #     lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
+        #            loc in enumerate(self.get_predictions(theta))]
+        # else:
+        #     lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
+        #            loc in enumerate(self.get_predictions(theta))]
+        # return np.sum(np.array(lhs))
+        
+        if self.use_square_errors:
+            k, scale = self._get_err_theta(theta)
+            residuals = data - self.get_predictions(theta)
+            square_errors = -0.5 * np.sum(residuals**2 / scale**2)
+            return square_errors
         else:
-            lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
-                   loc in enumerate(self.get_predictions(theta))]
-        return np.sum(np.array(lhs))
+            k, scale = self._get_err_theta(theta)
+            if np.isscalar(scale):
+                lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
+                       loc in enumerate(self.get_predictions(theta))]
+            else:
+                lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
+                       loc in enumerate(self.get_predictions(theta))]
+            return np.sum(np.array(lhs))
     
 
 class LhStudentProp(LhStudent):
@@ -363,13 +424,30 @@ class LhStudentProp(LhStudent):
         float
             Log-likelihood of the model given the data and parameters.
         """
-        k, sig_scale = self._get_err_theta(theta)
-        scale = sig_scale * data
-        if np.isscalar(scale):
-            lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
-                   loc in enumerate(self.get_predictions(theta))]
+        # k, sig_scale = self._get_err_theta(theta)
+        # scale = sig_scale * data
+        # if np.isscalar(scale):
+        #     lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
+        #            loc in enumerate(self.get_predictions(theta))]
+        # else:
+        #     lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
+        #            loc in enumerate(self.get_predictions(theta))]
+        # return np.sum(np.array(lhs))
+        
+        if self.use_square_errors:
+            k, sig_scale = self._get_err_theta(theta)
+            scale = sig_scale * data
+            residuals = data - self.get_predictions(theta)
+            square_errors = -0.5 * np.sum(residuals**2 / scale**2)
+            return square_errors
         else:
-            lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
-                   loc in enumerate(self.get_predictions(theta))]
-        return np.sum(np.array(lhs))
+            k, sig_scale = self._get_err_theta(theta)
+            scale = sig_scale * data
+            if np.isscalar(scale):
+                lhs = [stats.t.logpdf(data[i], k, loc, scale) for i,
+                       loc in enumerate(self.get_predictions(theta))]
+            else:
+                lhs = [stats.t.logpdf(data[i], k, loc, scale[i]) for i,
+                       loc in enumerate(self.get_predictions(theta))]
+            return np.sum(np.array(lhs))
 

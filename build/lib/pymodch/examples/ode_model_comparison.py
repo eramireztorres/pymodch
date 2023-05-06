@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
-from pymodch.prior_models.prior_models import GaussianPrior
-from pymodch.likelihood_models.likelihood_models import GaussianLikelihood
+from pymodch.prior_models.prior_models import UniformPrior
+from pymodch.likelihood_models.likelihood_models import LhNormal
+from pymodch.determ_models.ode_models import GompertzI, Grm
 from pymodch.assess.bayes_assess import MarginalLikelihoodEstimator
 
 class TestModelComparison(unittest.TestCase):
@@ -13,6 +14,23 @@ class TestModelComparison(unittest.TestCase):
         known_std_dev = 1.0
         n_data_points = 100
         data = np.random.normal(loc=true_mean, scale=known_std_dev, size=n_data_points)
+        
+        model_1 = GompertzI()
+        model_2 = Grm()
+        
+        # # Create synthetic data        
+        np.random.seed(42)
+        t_data = np.linspace(0, 10, 100)
+        r_true, K_true, V0_true = 0.2, 3000, 500
+        y_true = model_1.simulate_theta(t_data, (r_true, K_true, V0_true))
+        y_err = 50
+        y_data = y_true + np.random.normal(0, y_err, len(t_data))
+        
+        likelihood = LhNormal(model, t_data)
+        
+        #Params limits
+        lower_bounds_1 = np.array([0, 0, 0, 0]) 
+        upper_bounds_1 = np.array([20, 5, 1, 1])
 
         # Set up the prior and likelihood models for Model 1
         prior_model1 = GaussianPrior(mu=0, sigma=1)
@@ -39,7 +57,7 @@ class TestModelComparison(unittest.TestCase):
 
         # Compare the models (Bayes factor)
         log_bayes_factor = log_evidence_model1 - log_evidence_model2
-        print(f'Log Bayes factor: {log_bayes_factor}')
+        print(f'Bayes factor: {log_bayes_factor}')
         self.assertTrue(log_bayes_factor > 0)  # Model 1 should have a higher evidence
 
 
