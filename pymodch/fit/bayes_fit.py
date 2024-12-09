@@ -55,4 +55,4 @@ class EmceeModelFitter:
 
         samples = sampler.get_chain(discard=100, thin=15, flat=True)
         return samples
-    
+

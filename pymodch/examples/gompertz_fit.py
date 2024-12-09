@@ -55,4 +55,3 @@ plt.ylabel("y")
 plt.legend()
 plt.title("GompertzI fit using EmceeModelFitter")
 plt.show()
-

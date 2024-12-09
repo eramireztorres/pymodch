@@ -39,7 +39,9 @@ class TestModelComparison(unittest.TestCase):
 
         # Compare the models (Bayes factor)
         log_bayes_factor = log_evidence_model1 - log_evidence_model2
-        print(f'Log Bayes factor: {log_bayes_factor}')
+        print(f'ML model 1: {np.exp(log_evidence_model1)}')
+        print(f'ML model 2: {np.exp(log_evidence_model2)}')
+        print(f'Bayes factor: {np.exp(log_bayes_factor)}')
         self.assertTrue(log_bayes_factor > 0)  # Model 1 should have a higher evidence
 
 

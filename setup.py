@@ -10,7 +10,11 @@ setup(
     install_requires=[
         # Aquí puedes listar las dependencias de tu proyecto, por ejemplo:
         'numpy',
-        'scipy'
+        'scipy',
+        'matplotlib',
+        'emcee',
+        'tqdm',
+        'dynesty'
     ],
     # extras_require={
     #     # Aquí puedes listar dependencias opcionales, por ejemplo:
