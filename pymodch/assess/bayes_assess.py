@@ -208,12 +208,33 @@ class DramTiMarginalLikelihoodEstimator:
         return self.results
 
 
+
+# Function to load the tumor data
+def load_data(file_path):
+    """
+    Load tumor data from a file.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the file.
+
+    Returns
+    -------
+    tuple
+        Time vector (array) and volume matrix (2D array).
+    """
+    data = np.loadtxt(file_path, delimiter="\t")
+    time = data[:, 0]
+    volumes = data[:, 1:]
+    return time, volumes
+
 class DynestyFbfMarginalLikelihoodEstimator:
     """
     Marginal likelihood estimation using dynesty with FBF correction.
     """
 
-    def __init__(self, prior: Prior, likelihood: Likelihood, b_fraction=0.04):
+    def __init__(self, prior, likelihood, b_fraction=0.05):
         """
         Initialize the estimator.
 
@@ -224,13 +245,32 @@ class DynestyFbfMarginalLikelihoodEstimator:
         likelihood : Likelihood
             An instance of the likelihood class.
         b_fraction : float, optional
-            Fraction of the data used for prior correction in FBF. Default is 0.04.
+            Fraction of the data used for prior correction in FBF. Default is 0.05.
         """
         self.prior = prior
         self.likelihood = likelihood
         self.b_fraction = b_fraction
 
-    def log_likelihood_wrapper(self, theta: np.array, data: np.array) -> float:
+    def _adjust_prior(self, data):
+        """
+        Adjust the prior bounds based on the training data for FBF correction.
+
+        Parameters
+        ----------
+        data : np.array
+            Training data used for adjustment.
+        """
+        if data.size == 0:
+            raise ValueError("Training data for FBF correction is empty.")
+        if hasattr(self.prior, "lower_bounds") and hasattr(self.prior, "upper_bounds"):
+            data_range = np.ptp(data)
+            scale_factor = 0.1
+            self.prior.lower_bounds = np.maximum(self.prior.lower_bounds, np.min(data) - scale_factor * data_range)
+            self.prior.upper_bounds = np.minimum(self.prior.upper_bounds, np.max(data) + scale_factor * data_range)
+        else:
+            raise AttributeError("Prior does not support adjustment. Ensure it has 'lower_bounds' and 'upper_bounds'.")
+
+    def log_likelihood_wrapper(self, theta, data):
         """
         Log-likelihood wrapper for dynesty.
 
@@ -248,7 +288,7 @@ class DynestyFbfMarginalLikelihoodEstimator:
         """
         return self.likelihood.log_likelihood(data, theta)
 
-    def estimate(self, data: np.array, ndim: int) -> float:
+    def estimate(self, data, ndim):
         """
         Estimate the marginal likelihood using dynesty and FBF correction.
 
@@ -267,17 +307,93 @@ class DynestyFbfMarginalLikelihoodEstimator:
         # Split the data for FBF correction
         n_data = len(data)
         n_train = int(self.b_fraction * n_data)
+        if n_train < 1:
+            raise ValueError(f"Training data too small for FBF correction with b_fraction={self.b_fraction}.")
         train_data = data[:n_train]
         remaining_data = data[n_train:]
 
-        # Use the training data to adjust the prior
-        self.prior.adjust(train_data)
+        # Adjust the prior using the training data
+        self._adjust_prior(train_data)
 
         # Dynesty nested sampling
-        wrapped_log_likelihood = partial(self.log_likelihood_wrapper, data=remaining_data)
+        wrapped_log_likelihood = lambda theta: self.log_likelihood_wrapper(theta, remaining_data)
         sampler = dynesty.NestedSampler(wrapped_log_likelihood, self.prior.prior_transform, ndim)
         sampler.run_nested()
         results = sampler.results
 
         log_evidence = results.logz[-1]
         return log_evidence
+
+# class DynestyFbfMarginalLikelihoodEstimator:
+#     """
+#     Marginal likelihood estimation using dynesty with FBF correction.
+#     """
+
+#     def __init__(self, prior: Prior, likelihood: Likelihood, b_fraction=0.04):
+#         """
+#         Initialize the estimator.
+
+#         Parameters
+#         ----------
+#         prior : Prior
+#             An instance of the prior class.
+#         likelihood : Likelihood
+#             An instance of the likelihood class.
+#         b_fraction : float, optional
+#             Fraction of the data used for prior correction in FBF. Default is 0.04.
+#         """
+#         self.prior = prior
+#         self.likelihood = likelihood
+#         self.b_fraction = b_fraction
+
+#     def log_likelihood_wrapper(self, theta: np.array, data: np.array) -> float:
+#         """
+#         Log-likelihood wrapper for dynesty.
+
+#         Parameters
+#         ----------
+#         theta : array-like
+#             Parameter vector.
+#         data : array-like
+#             Observed data.
+
+#         Returns
+#         -------
+#         float
+#             Log-likelihood value.
+#         """
+#         return self.likelihood.log_likelihood(data, theta)
+
+#     def estimate(self, data: np.array, ndim: int) -> float:
+#         """
+#         Estimate the marginal likelihood using dynesty and FBF correction.
+
+#         Parameters
+#         ----------
+#         data : array-like
+#             Observed data.
+#         ndim : int
+#             Number of model parameters.
+
+#         Returns
+#         -------
+#         float
+#             Log marginal likelihood with FBF correction.
+#         """
+#         # Split the data for FBF correction
+#         n_data = len(data)
+#         n_train = int(self.b_fraction * n_data)
+#         train_data = data[:n_train]
+#         remaining_data = data[n_train:]
+
+#         # Use the training data to adjust the prior
+#         self.prior.adjust(train_data)
+
+#         # Dynesty nested sampling
+#         wrapped_log_likelihood = partial(self.log_likelihood_wrapper, data=remaining_data)
+#         sampler = dynesty.NestedSampler(wrapped_log_likelihood, self.prior.prior_transform, ndim)
+#         sampler.run_nested()
+#         results = sampler.results
+
+#         log_evidence = results.logz[-1]
+#         return log_evidence
