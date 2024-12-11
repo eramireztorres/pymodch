@@ -158,3 +158,126 @@ def dic(likelihood, y_data, theta_samples):
     dic = avg_deviance + 2 * p_d
 
     return dic
+
+
+class DramTiMarginalLikelihoodEstimator:
+    """
+    Marginal likelihood estimation using thermodynamic integration with DRAM.
+    """
+
+    def __init__(self, dram_fitter, n_temperatures=30, ti_exponent=1.0):
+        """
+        Initialize the estimator.
+
+        Parameters
+        ----------
+        dram_fitter : AbstractBayesFitter
+            An instance of the DRAM fitter.
+        n_temperatures : int, optional
+            Number of temperature steps for integration. Default is 30.
+        ti_exponent : float, optional
+            Exponent for the temperature scaling. Default is 1.0.
+        """
+        self.dram_fitter = dram_fitter
+        self.n_temperatures = n_temperatures
+        self.ti_exponent = ti_exponent
+        self.results = {}
+
+    def get_ml(self):
+        """
+        Estimate the marginal likelihood using thermodynamic integration.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the log marginal likelihood and intermediate results.
+        """
+        temperatures = np.linspace(0, 1, self.n_temperatures) ** self.ti_exponent
+        log_posteriors = []
+
+        for temp in temperatures:
+            self.dram_fitter.fit(temp=temp)
+            log_posterior = self.dram_fitter.results['log_posterior']
+            log_posteriors.append(log_posterior)
+
+        mean_log_posteriors = np.mean(log_posteriors, axis=1)
+        log_marginal_likelihood = np.trapz(mean_log_posteriors, temperatures)
+
+        self.results['log_posteriors'] = log_posteriors
+        self.results['log_marginal_likelihood'] = log_marginal_likelihood
+        return self.results
+
+
+class DynestyFbfMarginalLikelihoodEstimator:
+    """
+    Marginal likelihood estimation using dynesty with FBF correction.
+    """
+
+    def __init__(self, prior: Prior, likelihood: Likelihood, b_fraction=0.04):
+        """
+        Initialize the estimator.
+
+        Parameters
+        ----------
+        prior : Prior
+            An instance of the prior class.
+        likelihood : Likelihood
+            An instance of the likelihood class.
+        b_fraction : float, optional
+            Fraction of the data used for prior correction in FBF. Default is 0.04.
+        """
+        self.prior = prior
+        self.likelihood = likelihood
+        self.b_fraction = b_fraction
+
+    def log_likelihood_wrapper(self, theta: np.array, data: np.array) -> float:
+        """
+        Log-likelihood wrapper for dynesty.
+
+        Parameters
+        ----------
+        theta : array-like
+            Parameter vector.
+        data : array-like
+            Observed data.
+
+        Returns
+        -------
+        float
+            Log-likelihood value.
+        """
+        return self.likelihood.log_likelihood(data, theta)
+
+    def estimate(self, data: np.array, ndim: int) -> float:
+        """
+        Estimate the marginal likelihood using dynesty and FBF correction.
+
+        Parameters
+        ----------
+        data : array-like
+            Observed data.
+        ndim : int
+            Number of model parameters.
+
+        Returns
+        -------
+        float
+            Log marginal likelihood with FBF correction.
+        """
+        # Split the data for FBF correction
+        n_data = len(data)
+        n_train = int(self.b_fraction * n_data)
+        train_data = data[:n_train]
+        remaining_data = data[n_train:]
+
+        # Use the training data to adjust the prior
+        self.prior.adjust(train_data)
+
+        # Dynesty nested sampling
+        wrapped_log_likelihood = partial(self.log_likelihood_wrapper, data=remaining_data)
+        sampler = dynesty.NestedSampler(wrapped_log_likelihood, self.prior.prior_transform, ndim)
+        sampler.run_nested()
+        results = sampler.results
+
+        log_evidence = results.logz[-1]
+        return log_evidence
